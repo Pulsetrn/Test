@@ -25,6 +25,16 @@ def get_random_number() -> int:
     return random.randint(1, 100)
 
 
+def validate(message: Message):
+    users[message.from_user.id] = {
+        "in_game": False,
+        "secret_number": None,
+        "attempts": None,
+        "total_games": 0,
+        "wins": 0,
+    }
+
+
 # Этот хэндлер будет срабатывать на команду "/start"
 @dp.message(CommandStart())
 async def process_start_command(message: Message):
@@ -36,13 +46,7 @@ async def process_start_command(message: Message):
     # Если пользователь только запустил бота и его нет в словаре '
     # 'users - добавляем его в словарь
     if message.from_user.id not in users:
-        users[message.from_user.id] = {
-            "in_game": False,
-            "secret_number": None,
-            "attempts": None,
-            "total_games": 0,
-            "wins": 0,
-        }
+        validate(message)
 
 
 # Этот хэндлер будет срабатывать на команду "/help"
@@ -50,7 +54,7 @@ async def process_start_command(message: Message):
 async def process_help_command(message: Message):
     await message.answer(
         f"Правила игры:\n\nЯ загадываю число от 1 до 100, "
-        f"а вам нужно его угадать\nУ вас есть от 3 до 7 попыток, на мой выбор ;)"
+        f"а вам нужно его угадать\nУ вас есть 5 попыток, на мой выбор ;)"
         f"\n\nДоступные команды:\n/help - правила "
         f"игры и список команд\n/cancel - выйти из игры\n"
         f"/stat - посмотреть статистику\n\nДавай сыграем?"
@@ -84,12 +88,15 @@ async def process_cancel_command(message: Message):
     F.text.lower().in_(["да", "давай", "сыграем", "игра", "играть", "хочу играть"])
 )
 async def process_positive_answer(message: Message):
+    if message.from_user.id not in users:
+        validate(message)
     if not users[message.from_user.id]["in_game"]:
         users[message.from_user.id]["in_game"] = True
         users[message.from_user.id]["secret_number"] = get_random_number()
         users[message.from_user.id]["attempts"] = ATTEMPTS
         await message.answer(
-            "Ура!\n\nЯ загадал число от 1 до 100, " f"""попробуй угадать!
+            "Ура!\n\nЯ загадал число от 1 до 100, "
+            f"""попробуй угадать!
             У тебя {ATTEMPTS} попыток"""
         )
     else:
